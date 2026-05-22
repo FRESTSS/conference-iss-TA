@@ -88,34 +88,46 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-(function() {
-    // ========== ЗАМЕНИТЕ НА ВАШИ ДАННЫЕ ==========
-    const SUPABASE_URL = 'https://hdsbczfbokmcjvdolvmo.supabase.co';   // например 'https://xxxxx.supabase.co'
-    const SUPABASE_KEY = 'sb_publishable_zf775epbJGZFo2CDPDkJ1A_SYfnCJbm';      // ваш anon public key
-    // ===========================================
+    // ========== ВСТАВЬТЕ ВАШИ ДАННЫЕ СЮДА ==========
+    const MY_SUPABASE_URL = 'https://hdsbczfbokmcjvdolvmo.supabase.co';
+    const MY_SUPABASE_KEY = 'sb_publishable_zf775epbJGZFo2CDPDkJ1A_SYfnCJbm';
+    // ============================================
+
+    // Создаём клиент Supabase с уникальным именем переменной
+    const supabaseClient = window.supabase.createClient(MY_SUPABASE_URL, MY_SUPABASE_KEY);
     
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    let modal = null;
-    let conferencesData = [];
+    let modalBs = null;
+    let conferencesList = [];
 
-    function formatDate(d) { return new Date(d).toLocaleDateString('ru-RU'); }
-    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; return m;}); }
+    document.addEventListener('DOMContentLoaded', () => {
+        modalBs = new bootstrap.Modal(document.getElementById('confModal'));
+        document.getElementById('addButton').onclick = () => openForm();
+        document.getElementById('confForm').onsubmit = saveConference;
+        document.getElementById('searchInput').oninput = () => renderTable();
+        document.getElementById('levelFilter').onchange = () => renderTable();
+        document.getElementById('statusFilter').onchange = () => renderTable();
+        loadConferences();
+    });
 
-    async function loadData() {
-        const { data, error } = await supabase.from('conferences').select('*');
-        if (error) { console.error(error); alert('Ошибка загрузки данных'); return; }
-        conferencesData = data || [];
-        render();
+    async function loadConferences() {
+        const { data, error } = await supabaseClient.from('conferences').select('*');
+        if (error) {
+            console.error(error);
+            alert('Ошибка загрузки: ' + error.message);
+            return;
+        }
+        conferencesList = data || [];
+        renderTable();
     }
 
-    function render() {
-        const search = document.getElementById('searchInput').value.toLowerCase();
-        const level = document.getElementById('levelFilter').value;
-        const status = document.getElementById('statusFilter').value;
-        const filtered = conferencesData.filter(c => 
-            (c.title.toLowerCase().includes(search) || (c.organizer || '').toLowerCase().includes(search)) &&
-            (level === 'all' || c.level === level) &&
-            (status === 'all' || c.status === status)
+    function renderTable() {
+        const searchText = document.getElementById('searchInput').value.toLowerCase();
+        const levelVal = document.getElementById('levelFilter').value;
+        const statusVal = document.getElementById('statusFilter').value;
+        const filtered = conferencesList.filter(item => 
+            (item.title.toLowerCase().includes(searchText) || (item.organizer || '').toLowerCase().includes(searchText)) &&
+            (levelVal === 'all' || item.level === levelVal) &&
+            (statusVal === 'all' || item.status === statusVal)
         );
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
@@ -124,40 +136,41 @@
         } else {
             document.getElementById('emptyState').classList.add('d-none');
         }
-        const levels = { internal: 'Внутриколледная', regional: 'Региональная', 'all-russia': 'Всероссийская', international: 'Международная' };
-        const statusBadge = { planned: '<span class="badge bg-info">Запланирована</span>', active: '<span class="badge bg-warning">Идёт</span>', completed: '<span class="badge bg-success">Завершена</span>' };
-        const badgeMap = { 'all-russia': 'badge-vseross', international: 'badge-int', regional: 'badge-reg' };
-        filtered.forEach((c, i) => {
+        const levelNames = { internal: 'Внутриколледная', regional: 'Региональная', 'all-russia': 'Всероссийская', international: 'Международная' };
+        const statusHtml = { planned: '<span class="badge bg-info">Запланирована</span>', active: '<span class="badge bg-warning">Идёт</span>', completed: '<span class="badge bg-success">Завершена</span>' };
+        const badgeClass = { 'all-russia': 'badge-vseross', international: 'badge-int', regional: 'badge-reg' };
+        filtered.forEach((item, idx) => {
             const row = tbody.insertRow();
-            row.insertCell(0).textContent = i+1;
-            row.insertCell(1).innerHTML = `<b>${escapeHtml(c.title)}</b>${c.organizer ? `<br><small>${escapeHtml(c.organizer)}</small>` : ''}`;
-            row.insertCell(2).innerHTML = `<i class="bi bi-calendar3"></i> ${formatDate(c.dateStart)} — ${formatDate(c.dateEnd)}`;
-            row.insertCell(3).innerHTML = `<span class="badge-level ${badgeMap[c.level] || 'badge-inner'}">${levels[c.level]}</span>`;
-            row.insertCell(4).innerHTML = escapeHtml(c.location || '—');
-            row.insertCell(5).innerHTML = statusBadge[c.status] || '—';
+            row.insertCell(0).textContent = idx+1;
+            row.insertCell(1).innerHTML = `<b>${escapeText(item.title)}</b>${item.organizer ? `<br><small>${escapeText(item.organizer)}</small>` : ''}`;
+            row.insertCell(2).innerHTML = `<i class="bi bi-calendar3"></i> ${formatDate(item.dateStart)} — ${formatDate(item.dateEnd)}`;
+            row.insertCell(3).innerHTML = `<span class="badge-level ${badgeClass[item.level] || 'badge-inner'}">${levelNames[item.level]}</span>`;
+            row.insertCell(4).innerHTML = escapeText(item.location || '—');
+            row.insertCell(5).innerHTML = statusHtml[item.status] || '—';
             const actions = row.insertCell(6);
-            const editBtn = document.createElement('button'); editBtn.className = 'btn btn-sm btn-outline-primary me-1'; editBtn.innerHTML = '<i class="bi bi-pencil"></i>'; editBtn.onclick = () => openModal(c.id);
-            const delBtn = document.createElement('button'); delBtn.className = 'btn btn-sm btn-outline-danger'; delBtn.innerHTML = '<i class="bi bi-trash"></i>'; delBtn.onclick = () => deleteItem(c.id);
+            const editBtn = document.createElement('button'); editBtn.className = 'btn btn-sm btn-outline-primary me-1'; editBtn.innerHTML = '<i class="bi bi-pencil"></i>'; editBtn.onclick = () => openForm(item.id);
+            const delBtn = document.createElement('button'); delBtn.className = 'btn btn-sm btn-outline-danger'; delBtn.innerHTML = '<i class="bi bi-trash"></i>'; delBtn.onclick = () => deleteConference(item.id);
             actions.appendChild(editBtn); actions.appendChild(delBtn);
         });
-        // Добавляем атрибуты data-label для адаптива
+        // Для адаптива
         document.querySelectorAll('#tableBody tr').forEach(tr => {
-            tr.children[0].setAttribute('data-label', '#');
-            tr.children[1].setAttribute('data-label', 'Название');
-            tr.children[2].setAttribute('data-label', 'Даты');
-            tr.children[3].setAttribute('data-label', 'Уровень');
-            tr.children[4].setAttribute('data-label', 'Место');
-            tr.children[5].setAttribute('data-label', 'Статус');
-            tr.children[6].setAttribute('data-label', 'Действия');
+            const cells = tr.children;
+            if(cells[0]) cells[0].setAttribute('data-label', '#');
+            if(cells[1]) cells[1].setAttribute('data-label', 'Название');
+            if(cells[2]) cells[2].setAttribute('data-label', 'Даты');
+            if(cells[3]) cells[3].setAttribute('data-label', 'Уровень');
+            if(cells[4]) cells[4].setAttribute('data-label', 'Место');
+            if(cells[5]) cells[5].setAttribute('data-label', 'Статус');
+            if(cells[6]) cells[6].setAttribute('data-label', 'Действия');
         });
     }
 
-    function openModal(id = null) {
+    function openForm(id = null) {
         document.getElementById('confForm').reset();
         document.getElementById('editId').value = '';
         document.getElementById('modalTitle').innerHTML = '<i class="bi bi-plus-circle"></i> Добавить конференцию';
         if (id) {
-            const item = conferencesData.find(c => c.id === id);
+            const item = conferencesList.find(c => c.id === id);
             if (item) {
                 document.getElementById('editId').value = item.id;
                 document.getElementById('title').value = item.title;
@@ -171,19 +184,22 @@
                 document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil-square"></i> Редактировать';
             }
         }
-        modal.show();
+        modalBs.show();
     }
 
-    async function handleSubmit(e) {
+    async function saveConference(e) {
         e.preventDefault();
-        const start = document.getElementById('dateStart').value;
-        const end = document.getElementById('dateEnd').value;
-        if (start > end) { alert('Дата окончания не может быть раньше даты начала'); return; }
+        const startDate = document.getElementById('dateStart').value;
+        const endDate = document.getElementById('dateEnd').value;
+        if (startDate > endDate) {
+            alert('Дата окончания не может быть раньше даты начала');
+            return;
+        }
         const editId = document.getElementById('editId').value;
-        const item = {
+        const conference = {
             title: document.getElementById('title').value.trim(),
-            dateStart: start,
-            dateEnd: end,
+            dateStart: startDate,
+            dateEnd: endDate,
             level: document.getElementById('level').value,
             status: document.getElementById('status').value,
             participants: parseInt(document.getElementById('participants').value) || 0,
@@ -192,32 +208,33 @@
         };
         let result;
         if (editId) {
-            result = await supabase.from('conferences').update(item).eq('id', parseInt(editId));
+            result = await supabaseClient.from('conferences').update(conference).eq('id', parseInt(editId));
         } else {
-            result = await supabase.from('conferences').insert([item]);
+            result = await supabaseClient.from('conferences').insert([conference]);
         }
-        if (result.error) { alert('Ошибка сохранения: ' + result.error.message); console.error(result.error); }
-        else { modal.hide(); await loadData(); }
+        if (result.error) {
+            alert('Ошибка сохранения: ' + result.error.message);
+            console.error(result.error);
+        } else {
+            modalBs.hide();
+            await loadConferences();
+        }
     }
 
-    async function deleteItem(id) {
+    async function deleteConference(id) {
         if (confirm('Удалить конференцию?')) {
-            const { error } = await supabase.from('conferences').delete().eq('id', id);
-            if (error) { alert('Ошибка удаления: ' + error.message); console.error(error); }
-            else { await loadData(); }
+            const { error } = await supabaseClient.from('conferences').delete().eq('id', id);
+            if (error) {
+                alert('Ошибка удаления: ' + error.message);
+                console.error(error);
+            } else {
+                await loadConferences();
+            }
         }
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        modal = new bootstrap.Modal(document.getElementById('confModal'));
-        document.getElementById('addButton').addEventListener('click', () => openModal());
-        document.getElementById('confForm').addEventListener('submit', handleSubmit);
-        document.getElementById('searchInput').addEventListener('input', () => render());
-        document.getElementById('levelFilter').addEventListener('change', () => render());
-        document.getElementById('statusFilter').addEventListener('change', () => render());
-        loadData();
-    });
-})();
+    function formatDate(dateStr) { return new Date(dateStr).toLocaleDateString('ru-RU'); }
+    function escapeText(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; return m;}); }
 </script>
 </body>
 </html>
