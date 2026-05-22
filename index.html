@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Конференции | Управление</title>
+    <!-- Bootstrap 5 + Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Supabase JS библиотека -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* ... здесь все ваши CSS стили остаются без изменений ... */
+        * { transition: all 0.2s ease; }
+        body { background: linear-gradient(135deg, #eef2f9 0%, #dfe6f0 100%); font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; padding-bottom: 2rem; }
+        .main-card { background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(3px); border-radius: 2rem; box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.25); padding: 1.8rem; margin-top: 1rem; }
+        h1 { font-weight: 800; background: linear-gradient(120deg, #0b2b5c, #1e4a76); background-clip: text; -webkit-background-clip: text; color: transparent; letter-spacing: -0.5px; display: inline-flex; align-items: center; gap: 12px; }
+        h1 i { background: none; -webkit-background-clip: unset; color: #1e4a76; }
+        .form-control, .form-select { border-radius: 60px; border: 1px solid #cddfeb; padding: 10px 18px; background-color: white; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+        .form-control:focus, .form-select:focus { border-color: #1e4663; box-shadow: 0 0 0 4px rgba(30,70,99,0.2); outline: none; }
+        .btn-primary { background: linear-gradient(95deg, #1e4663, #143450); border: none; border-radius: 60px; padding: 10px 20px; font-weight: 500; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 20px -8px #1e466380; background: linear-gradient(95deg, #255c82, #1a3f5c); }
+        .btn-outline-primary, .btn-outline-danger { border-radius: 40px; border-width: 1.5px; margin: 0 3px; }
+        .btn-outline-primary:hover { background: #1e4663; border-color: #1e4663; transform: translateY(-2px); }
+        .btn-outline-danger:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(220,53,69,0.3); }
+        .table { border-collapse: separate; border-spacing: 0; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 6px 14px rgba(0, 0, 0, 0.05); margin-bottom: 0; }
+        .table thead th { background: #0f2c44; color: white; font-weight: 600; border-bottom: none; padding: 16px 12px; font-size: 0.95rem; }
+        .table tbody tr { transition: all 0.2s; }
+        .table tbody tr:hover { background-color: #f6fafe; transform: scale(1.01); box-shadow: 0 8px 18px rgba(0,0,0,0.06); }
+        .badge-level { padding: 6px 14px; font-weight: 500; border-radius: 60px; font-size: 0.8rem; letter-spacing: 0.3px; display: inline-block; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .badge-inner { background: #2c7da0; color: white; }
+        .badge-reg { background: #2a9d8f; color: white; }
+        .badge-vseross { background: #e9c46a; color: #2c3e2f; font-weight: 600; }
+        .badge-int { background: #9b5de5; color: white; }
+        .badge.bg-info { background: #00b4d8 !important; }
+        .badge.bg-warning { background: #ffb703 !important; color: #2d2b1f; }
+        .badge.bg-success { background: #06d6a0 !important; }
+        #tableBody tr { animation: fadeSlide 0.25s ease-out; }
+        @keyframes fadeSlide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-content { background: rgba(255,255,255,0.98); backdrop-filter: blur(8px); border-radius: 32px; border: none; box-shadow: 0 30px 50px rgba(0,0,0,0.25); }
+        .modal-header { border-bottom: 1px solid #e2edf7; border-radius: 32px 32px 0 0; background: white; }
+        .modal-footer { border-top: 1px solid #e2edf7; }
+        #emptyState { background: rgba(255,255,240,0.8); border-radius: 60px; border-left: 6px solid #1e4663; font-weight: 500; }
+        @media (max-width: 768px) {
+            .main-card { padding: 1rem; }
+            .table, .table thead, .table tbody, .table tr, .table td { display: block; }
+            .table thead { display: none; }
+            .table tr { margin-bottom: 20px; border-radius: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); background: white; padding: 12px 12px 8px 12px; border: none; }
+            .table td { display: flex; justify-content: space-between; align-items: center; padding: 10px 6px; border-bottom: 1px solid #eef2f8; gap: 12px; }
+            .table td:last-child { border-bottom: none; }
+            .table td:before { content: attr(data-label); font-weight: 700; color: #0f2c44; width: 40%; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+            .badge-level { font-size: 0.75rem; padding: 4px 12px; }
+            .btn-sm { padding: 4px 12px; }
+        }
+    </style>
+</head>
+<body class="container py-3 py-md-4">
+    <div class="main-card">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <h1><i class="bi bi-calendar2-week"></i> Конференции</h1>
+            <button class="btn btn-primary no-print" onclick="openModal()"><i class="bi bi-plus-lg"></i> Новая конференция</button>
+        </div>
+        <div class="row g-3 mb-4 align-items-end no-print">
+            <div class="col-md-4">
+                <label class="form-label"><i class="bi bi-search"></i> Поиск</label>
+                <input type="text" id="searchInput" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label"><i class="bi bi-diagram-3"></i> Уровень</label>
+                <select id="levelFilter" class="form-select">
+                    <option value="all">Все</option>
+                    <option value="internal">Внутриколледная</option>
+                    <option value="regional">Региональная</option>
+                    <option value="all-russia">Всероссийская</option>
+                    <option value="international">Международная</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label"><i class="bi bi-flag"></i> Статус</label>
+                <select id="statusFilter" class="form-select">
+                    <option value="all">Все</option>
+                    <option value="planned">Запланирована</option>
+                    <option value="active">Идёт</option>
+                    <option value="completed">Завершена</option>
+                </select>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr><th>#</th><th>Название</th><th>Даты</th><th>Уровень</th><th>Место</th><th>Статус</th><th class="no-print"></th></tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+        <div id="emptyState" class="alert text-center d-none mt-3">
+            <i class="bi bi-inbox fs-3"></i><br>Конференции не найдены
+        </div>
+    </div>
+    <div class="modal fade" id="confModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-calendar-plus"></i> Конференция</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="confForm" onsubmit="handleFormSubmit(event)">
+                    <div class="modal-body">
+                        <input type="hidden" id="editId">
+                        <div class="mb-3"><label class="form-label">Название</label><input type="text" id="title" class="form-control" required></div>
+                        <div class="row mb-3">
+                            <div class="col"><label class="form-label">Дата начала</label><input type="date" id="dateStart" class="form-control" required></div>
+                            <div class="col"><label class="form-label">Дата окончания</label><input type="date" id="dateEnd" class="form-control" required></div>
+                        </div>
+                        <div class="mb-3"><label class="form-label">Уровень</label><select id="level" class="form-select"><option value="internal">Внутриколледная</option><option value="regional">Региональная</option><option value="all-russia">Всероссийская</option><option value="international">Международная</option></select></div>
+                        <div class="mb-3"><label class="form-label">Статус</label><select id="status" class="form-select"><option value="planned">Запланирована</option><option value="active">Идёт</option><option value="completed">Завершена</option></select></div>
+                        <div class="mb-3"><label class="form-label">Кол‑во участников</label><input type="number" id="participants" class="form-control" value="0"></div>
+                        <div class="mb-3"><label class="form-label">Место проведения</label><input type="text" id="location" class="form-control"></div>
+                        <div class="mb-3"><label class="form-label">Организатор</label><input type="text" id="organizer" class="form-control"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ИНИЦИАЛИЗАЦИЯ SUPABASE (ВСТАВЬТЕ ВАШИ ДАННЫЕ)
+        const SUPABASE_URL = https://hdsbczfbokmcjvdolvmo.supabase.co
+        const SUPABASE_KEY = sb_publishable_zf775epbJGZFo2CDPDkJ1A_SYfnCJbm
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Глобальная переменная для модального окна
+        let modal;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            modal = new bootstrap.Modal(document.getElementById('confModal'));
+            loadData();
+            ['searchInput', 'levelFilter', 'statusFilter'].forEach(id =>
+                document.getElementById(id).addEventListener('input', () => render())
+            );
+        });
+
+        // Загрузка данных из Supabase
+        async function loadData() {
+            const { data, error } = await supabase
+                .from('conferences')
+                .select('*');
+            
+            if (error) {
+                console.error('Ошибка загрузки:', error);
+                alert('Не удалось загрузить данные из базы');
+                return;
+            }
+            
+            window.conferencesData = data; // Сохраняем в глобальную переменную
+            render();
+        }
+
+        // Рендеринг таблицы (теперь работает с window.conferencesData)
+        function render() {
+            const data = window.conferencesData || [];
+            const tbody = document.getElementById('tableBody');
+            const empty = document.getElementById('emptyState');
+            const s = document.getElementById('searchInput').value.toLowerCase();
+            const lvl = document.getElementById('levelFilter').value;
+            const stat = document.getElementById('statusFilter').value;
+
+            const filtered = data.filter(c =>
+                (c.title.toLowerCase().includes(s) || (c.organizer || '').toLowerCase().includes(s)) &&
+                (lvl === 'all' || c.level === lvl) && (stat === 'all' || c.status === stat)
+            );
+
+            tbody.innerHTML = '';
+            empty.classList.toggle('d-none', filtered.length > 0);
+
+            const levels = { internal: 'Внутриколледная', regional: 'Региональная', 'all-russia': 'Всероссийская', international: 'Международная' };
+            const statuses = { planned: '<span class="badge bg-info">Запланирована</span>', active: '<span class="badge bg-warning text-dark">Идёт</span>', completed: '<span class="badge bg-success">Завершена</span>' };
+            const badgeClsMap = { 'all-russia': 'badge-vseross', international: 'badge-int', regional: 'badge-reg' };
+
+            filtered.forEach((c, i) => {
+                const badgeCls = badgeClsMap[c.level] || 'badge-inner';
+                const dateHtml = `<i class="bi bi-calendar3 me-1"></i> ${fmt(c.dateStart)} — ${fmt(c.dateEnd)}`;
+                const locationText = c.location || '—';
+                const organizerText = c.organizer ? `<small class="text-muted d-block mt-1"><i class="bi bi-person-badge"></i> ${esc(c.organizer)}</small>` : '';
+
+                const row = document.createElement('tr');
+                const tdNumber = document.createElement('td'); tdNumber.setAttribute('data-label', '#'); tdNumber.textContent = i+1;
+                const tdTitle = document.createElement('td'); tdTitle.setAttribute('data-label', 'Название'); tdTitle.innerHTML = `${esc(c.title)}${organizerText}`;
+                const tdDates = document.createElement('td'); tdDates.setAttribute('data-label', 'Даты'); tdDates.innerHTML = dateHtml;
+                const tdLevel = document.createElement('td'); tdLevel.setAttribute('data-label', 'Уровень'); tdLevel.innerHTML = `<span class="badge-level ${badgeCls}">${levels[c.level]}</span>`;
+                const tdLocation = document.createElement('td'); tdLocation.setAttribute('data-label', 'Место'); tdLocation.innerHTML = `<small>${esc(locationText)}</small>`;
+                const tdStatus = document.createElement('td'); tdStatus.setAttribute('data-label', 'Статус'); tdStatus.innerHTML = statuses[c.status] || '—';
+                const tdActions = document.createElement('td'); tdActions.setAttribute('data-label', 'Действия'); tdActions.className = 'no-print';
+                tdActions.innerHTML = `<button class="btn btn-sm btn-outline-primary" onclick="edit(${c.id})"><i class="bi bi-pencil"></i></button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="del(${c.id})"><i class="bi bi-trash3"></i></button>`;
+                row.append(tdNumber, tdTitle, tdDates, tdLevel, tdLocation, tdStatus, tdActions);
+                tbody.appendChild(row);
+            });
+        }
+
+        // Открытие модалки для добавления/редактирования
+        function openModal(id = null) {
+            document.getElementById('confForm').reset();
+            document.getElementById('editId').value = '';
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-calendar-plus"></i> Добавить конференцию';
+            if (id) {
+                const data = window.conferencesData || [];
+                const c = data.find(x => x.id === id);
+                if (!c) return;
+                document.getElementById('editId').value = c.id;
+                document.getElementById('title').value = c.title;
+                document.getElementById('dateStart').value = c.dateStart;
+                document.getElementById('dateEnd').value = c.dateEnd;
+                document.getElementById('level').value = c.level;
+                document.getElementById('status').value = c.status;
+                document.getElementById('participants').value = c.participants;
+                document.getElementById('location').value = c.location || '';
+                document.getElementById('organizer').value = c.organizer || '';
+                document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil-square"></i> Редактировать';
+            }
+            modal.show();
+        }
+
+        // Обработка отправки формы (добавление/обновление)
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const start = document.getElementById('dateStart').value;
+            const end = document.getElementById('dateEnd').value;
+            if (start > end) { alert('Ошибка: дата окончания раньше даты начала'); return; }
+            const editId = document.getElementById('editId').value;
+            const item = {
+                title: document.getElementById('title').value.trim(),
+                dateStart: start,
+                dateEnd: end,
+                level: document.getElementById('level').value,
+                status: document.getElementById('status').value,
+                participants: +document.getElementById('participants').value || 0,
+                location: document.getElementById('location').value.trim(),
+                organizer: document.getElementById('organizer').value.trim()
+            };
+
+            let result;
+            if (editId) {
+                // Обновление существующей записи
+                result = await supabase
+                    .from('conferences')
+                    .update(item)
+                    .eq('id', parseInt(editId));
+            } else {
+                // Добавление новой записи
+                result = await supabase
+                    .from('conferences')
+                    .insert([item]);
+            }
+            
+            if (result.error) {
+                console.error('Ошибка сохранения:', result.error);
+                alert('Ошибка при сохранении в базу данных');
+            } else {
+                modal.hide();
+                await loadData(); // Перезагружаем данные из базы
+            }
+        }
+
+        // Функции-обертки для вызова из onclick
+        function edit(id) { openModal(id); }
+        async function del(id) {
+            if (confirm('Удалить конференцию?')) {
+                const { error } = await supabase
+                    .from('conferences')
+                    .delete()
+                    .eq('id', id);
+                
+                if (error) {
+                    console.error('Ошибка удаления:', error);
+                    alert('Ошибка при удалении из базы данных');
+                } else {
+                    await loadData(); // Перезагружаем данные
+                }
+            }
+        }
+        
+        // Вспомогательные функции
+        function fmt(d) { return new Date(d).toLocaleDateString('ru-RU'); }
+        function esc(t) { const el = document.createElement('div'); el.textContent = t; return el.innerHTML; }
+    </script>
+</body>
+</html>
