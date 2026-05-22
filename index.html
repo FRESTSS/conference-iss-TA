@@ -14,70 +14,26 @@
         h1 { font-weight: 800; background: linear-gradient(120deg, #0b2b5c, #1e4a76); background-clip: text; -webkit-background-clip: text; color: transparent; display: inline-flex; align-items: center; gap: 12px; font-size: 1.8rem; }
         .btn-primary { background: linear-gradient(95deg, #1e4663, #143450); border: none; border-radius: 60px; padding: 10px 20px; font-weight: 500; }
         .btn-primary:active { transform: scale(0.97); }
-        /* Свайп-удаление */
-        .swipe-item {
-            position: relative;
-            margin-bottom: 16px;
-            border-radius: 20px;
-            overflow: hidden;
-        }
-        .swipe-content {
-            background: white;
-            border-radius: 20px;
-            position: relative;
-            z-index: 2;
-            touch-action: pan-y pinch-zoom;
-        }
-        .delete-overlay {
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            width: 90px;
-            background: #dc3545;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 20px;
-            z-index: 1;
-            font-weight: bold;
-            gap: 6px;
-        }
+        /* Свайп-удаление (мобильный) */
+        .swipe-item { position: relative; margin-bottom: 16px; border-radius: 20px; overflow: hidden; }
+        .swipe-content { background: white; border-radius: 20px; position: relative; z-index: 2; touch-action: pan-y pinch-zoom; }
+        .delete-overlay { position: absolute; right: 0; top: 0; bottom: 0; width: 90px; background: #dc3545; color: white; display: flex; align-items: center; justify-content: center; border-radius: 20px; z-index: 1; font-weight: bold; gap: 6px; }
         @media (max-width: 768px) {
             .main-card { padding: 1rem; }
             h1 { font-size: 1.4rem; }
             .btn-primary { padding: 12px 16px; font-size: 1rem; width: 100%; }
             .form-control, .form-select { font-size: 16px; padding: 12px 16px; }
-            .table { display: block; }
+            .table, .table thead, .table tbody, .table tr, .table td { display: block; }
             .table thead { display: none; }
-            .table tbody { display: block; }
             .d-flex.flex-wrap { flex-direction: column; gap: 12px; align-items: stretch; }
             .row.g-3 { flex-direction: column; }
         }
-        /* Десктоп: скрываем оверлей и показываем обычную таблицу */
         @media (min-width: 769px) {
-            .swipe-item {
-                display: table-row;
-                background: transparent;
-                margin-bottom: 0;
-            }
-            .swipe-content {
-                display: table-cell;
-                padding: 0;
-                background: transparent;
-                box-shadow: none;
-                border-radius: 0;
-            }
-            .delete-overlay {
-                display: none;
-            }
-            .table tbody tr {
-                display: table-row;
-            }
-            .table td {
-                display: table-cell;
-            }
+            .swipe-item { display: table-row; background: transparent; margin-bottom: 0; }
+            .swipe-content { display: table-cell; padding: 0; background: transparent; box-shadow: none; border-radius: 0; }
+            .delete-overlay { display: none; }
+            .table tbody tr { display: table-row; }
+            .table td { display: table-cell; }
         }
     </style>
 </head>
@@ -88,13 +44,13 @@
         <button class="btn btn-primary" id="addButton"><i class="bi bi-plus-lg"></i> Новая</button>
     </div>
     <div class="row g-3 mb-4">
-        <div class="col-md-4"><input type="text" id="searchInput" class="form-control" placeholder="Поиск"></div>
-        <div class="col-md-3"><select id="levelFilter" class="form-select"><option value="all">Все уровни</option><option value="internal">Внутриколледжная</option><option value="regional">Региональная</option><option value="all-russia">Всероссийская</option><option value="international">Международная</option></select></div>
+        <div class="col-md-4"><input type="text" id="searchInput" class="form-control" placeholder="Поиск по названию или организатору"></div>
+        <div class="col-md-3"><select id="levelFilter" class="form-select"><option value="all">Все уровни</option><option value="internal">Внутриколледная</option><option value="regional">Региональная</option><option value="all-russia">Всероссийская</option><option value="international">Международная</option></select></div>
         <div class="col-md-3"><select id="statusFilter" class="form-select"><option value="all">Все статусы</option><option value="planned">Запланирована</option><option value="active">Идёт</option><option value="completed">Завершена</option></select></div>
     </div>
     <div class="table-responsive">
         <table class="table align-middle" id="conferenceTable">
-            <thead><tr><th>#</th><th>Название</th><th>Даты</th><th>Уровень</th><th>Место</th><th>Статус</th><th></th></tr></thead>
+            <thead><tr><th>#</th><th>Название</th><th>Дата и время начала</th><th>Дата и время окончания</th><th>Уровень</th><th>Место</th><th>Статус</th><th></th></tr></thead>
             <tbody id="tableBody"></tbody>
         </table>
     </div>
@@ -103,20 +59,25 @@
 
 <div class="modal fade" id="confModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="modalTitle">Конференция</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-    <form id="confForm"><div class="modal-body"><input type="hidden" id="editId"><div class="mb-3"><label class="form-label">Название</label><input type="text" id="title" class="form-control" required></div>
-    <div class="row mb-3"><div class="col"><label class="form-label">Дата начала</label><input type="date" id="dateStart" class="form-control" required></div><div class="col"><label class="form-label">Дата окончания</label><input type="date" id="dateEnd" class="form-control" required></div></div>
-    <div class="mb-3"><label class="form-label">Уровень</label><select id="level" class="form-select"><option value="internal">Внутриколледжная</option><option value="regional">Региональная</option><option value="all-russia">Всероссийская</option><option value="international">Международная</option></select></div>
-    <div class="mb-3"><label class="form-label">Статус</label><select id="status" class="form-select"><option value="planned">Запланирована</option><option value="active">Идёт</option><option value="completed">Завершена</option></select></div>
-    <div class="mb-3"><label class="form-label">Участники</label><input type="number" id="participants" class="form-control" value="0"></div>
-    <div class="mb-3"><label class="form-label">Место</label><input type="text" id="location" class="form-control"></div>
-    <div class="mb-3"><label class="form-label">Организатор</label><input type="text" id="organizer" class="form-control"></div></div>
-    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button><button type="submit" class="btn btn-primary">Сохранить</button></div></form></div></div>
+    <form id="confForm"><div class="modal-body"><input type="hidden" id="editId">
+        <div class="mb-3"><label class="form-label">Название</label><input type="text" id="title" class="form-control" required></div>
+        <div class="mb-3"><label class="form-label">Дата и время начала</label><input type="datetime-local" id="dateStart" class="form-control" required></div>
+        <div class="mb-3"><label class="form-label">Дата и время окончания</label><input type="datetime-local" id="dateEnd" class="form-control" required></div>
+        <div class="mb-3"><label class="form-label">Уровень</label><select id="level" class="form-select"><option value="internal">Внутриколледная</option><option value="regional">Региональная</option><option value="all-russia">Всероссийская</option><option value="international">Международная</option></select></div>
+        <div class="mb-3"><label class="form-label">Статус</label><select id="status" class="form-select"><option value="planned">Запланирована</option><option value="active">Идёт</option><option value="completed">Завершена</option></select></div>
+        <div class="mb-3"><label class="form-label">Участники</label><input type="number" id="participants" class="form-control" value="0"></div>
+        <div class="mb-3"><label class="form-label">Место проведения</label><input type="text" id="location" class="form-control"></div>
+        <div class="mb-3"><label class="form-label">Организатор</label><input type="text" id="organizer" class="form-control"></div>
+    </div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button><button type="submit" class="btn btn-primary">Сохранить</button></div></form></div></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // ========== ВСТАВЬТЕ ВАШИ ДАННЫЕ ==========
     const MY_SUPABASE_URL = 'https://hdsbczfbokmcjvdolvmo.supabase.co';
     const MY_SUPABASE_KEY = 'sb_publishable_zf775epbJGZFo2CDPDkJ1A_SYfnCJbm';
+    // ==========================================
+
     const supabaseClient = window.supabase.createClient(MY_SUPABASE_URL, MY_SUPABASE_KEY);
     let modalBs = null;
     let conferencesList = [];
@@ -130,7 +91,7 @@
         document.getElementById('statusFilter').onchange = () => renderTable();
         loadConferences();
 
-        // Pull-to-refresh
+        // Pull-to-refresh (простая версия)
         let touchStartY = 0;
         let pulling = false;
         const container = document.querySelector('.main-card');
@@ -142,8 +103,10 @@
     function showRefreshHint() { let h = document.getElementById('refreshHint'); if (!h) { h = document.createElement('div'); h.id = 'refreshHint'; h.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#1e4663;color:white;text-align:center;padding:12px;z-index:1000;transform:translateY(-100%);transition:0.3s'; h.innerHTML = 'Обновление...'; document.body.appendChild(h); } h.style.transform = 'translateY(0)'; }
     function hideRefreshHint() { const h = document.getElementById('refreshHint'); if (h) h.style.transform = 'translateY(-100%)'; }
 
-    async function loadConferences() { const { data, error } = await supabaseClient.from('conferences').select('*'); if (error) { alert('Ошибка загрузки'); return; } conferencesList = data || []; renderTable(); }
+    async function loadConferences() { const { data, error } = await supabaseClient.from('conferences').select('*'); if (error) { alert('Ошибка загрузки: ' + error.message); return; } conferencesList = data || []; renderTable(); }
     
+    function formatDateTime(isoStr) { if (!isoStr) return '—'; const d = new Date(isoStr); return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+
     function renderTable() {
         const search = document.getElementById('searchInput').value.toLowerCase();
         const lvl = document.getElementById('levelFilter').value;
@@ -153,7 +116,7 @@
         tbody.innerHTML = '';
         if (filtered.length === 0) { document.getElementById('emptyState').classList.remove('d-none'); return; }
         document.getElementById('emptyState').classList.add('d-none');
-        const levelNames = { internal: 'Внутриколледжная', regional: 'Региональная', 'all-russia': 'Всероссийская', international: 'Международная' };
+        const levelNames = { internal: 'Внутриколледная', regional: 'Региональная', 'all-russia': 'Всероссийская', international: 'Международная' };
         const statusHtml = { planned: '<span class="badge bg-info">Запланирована</span>', active: '<span class="badge bg-warning">Идёт</span>', completed: '<span class="badge bg-success">Завершена</span>' };
         const badgeClass = { 'all-russia': 'badge-vseross', international: 'badge-int', regional: 'badge-reg' };
         
@@ -163,7 +126,8 @@
                 const swipeItem = document.createElement('div'); swipeItem.className = 'swipe-item';
                 const contentDiv = document.createElement('div'); contentDiv.className = 'swipe-content'; contentDiv.style.cssText = 'background:white;border-radius:20px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,0.05)';
                 contentDiv.innerHTML = `<div style="display:flex;justify-content:space-between"><strong>${escapeText(item.title)}</strong><span class="badge-level ${badgeClass[item.level] || 'badge-inner'}">${levelNames[item.level]}</span></div>
-                                        <div style="margin-top:8px"><i class="bi bi-calendar3"></i> ${formatDate(item.dateStart)} — ${formatDate(item.dateEnd)}</div>
+                                        <div style="margin-top:8px"><i class="bi bi-calendar-plus"></i> ${formatDateTime(item.dateStart)}</div>
+                                        <div style="margin-top:4px"><i class="bi bi-calendar-x"></i> ${formatDateTime(item.dateEnd)}</div>
                                         ${item.organizer ? `<div style="margin-top:4px"><small><i class="bi bi-person-badge"></i> ${escapeText(item.organizer)}</small></div>` : ''}
                                         <div style="margin-top:4px"><i class="bi bi-geo-alt"></i> ${escapeText(item.location || '—')}</div>
                                         <div style="margin-top:8px">${statusHtml[item.status]}</div>
@@ -177,32 +141,34 @@
                 contentDiv.querySelector('.edit-btn').onclick = (e) => { e.stopPropagation(); openForm(item.id); };
             });
         } else {
-            // Десктоп: обычная таблица
+            // Десктоп: таблица
             filtered.forEach((item, idx) => {
                 const row = tbody.insertRow();
                 row.insertCell(0).textContent = idx+1;
                 row.insertCell(1).innerHTML = `<b>${escapeText(item.title)}</b>${item.organizer ? `<br><small>${escapeText(item.organizer)}</small>` : ''}`;
-                row.insertCell(2).innerHTML = `<i class="bi bi-calendar3"></i> ${formatDate(item.dateStart)} — ${formatDate(item.dateEnd)}`;
-                row.insertCell(3).innerHTML = `<span class="badge-level ${badgeClass[item.level] || 'badge-inner'}">${levelNames[item.level]}</span>`;
-                row.insertCell(4).innerHTML = escapeText(item.location || '—');
-                row.insertCell(5).innerHTML = statusHtml[item.status] || '—';
-                const actions = row.insertCell(6);
+                row.insertCell(2).innerHTML = `<i class="bi bi-calendar-plus"></i> ${formatDateTime(item.dateStart)}`;
+                row.insertCell(3).innerHTML = `<i class="bi bi-calendar-x"></i> ${formatDateTime(item.dateEnd)}`;
+                row.insertCell(4).innerHTML = `<span class="badge-level ${badgeClass[item.level] || 'badge-inner'}">${levelNames[item.level]}</span>`;
+                row.insertCell(5).innerHTML = escapeText(item.location || '—');
+                row.insertCell(6).innerHTML = statusHtml[item.status] || '—';
+                const actions = row.insertCell(7);
                 const editBtn = document.createElement('button'); editBtn.className = 'btn btn-sm btn-outline-primary me-1'; editBtn.innerHTML = '<i class="bi bi-pencil"></i>'; editBtn.onclick = () => openForm(item.id);
                 const delBtn = document.createElement('button'); delBtn.className = 'btn btn-sm btn-outline-danger'; delBtn.innerHTML = '<i class="bi bi-trash"></i>'; delBtn.onclick = () => deleteConference(item.id);
                 actions.appendChild(editBtn); actions.appendChild(delBtn);
             });
         }
-        // Добавить data-label для адаптива (в мобильном режиме они не нужны, но для единообразия)
+        // data-label для десктопной таблицы (адаптив)
         if (window.innerWidth > 768) {
             document.querySelectorAll('#tableBody tr').forEach(tr => {
                 const cells = tr.children;
                 if(cells[0]) cells[0].setAttribute('data-label', '#');
                 if(cells[1]) cells[1].setAttribute('data-label', 'Название');
-                if(cells[2]) cells[2].setAttribute('data-label', 'Даты');
-                if(cells[3]) cells[3].setAttribute('data-label', 'Уровень');
-                if(cells[4]) cells[4].setAttribute('data-label', 'Место');
-                if(cells[5]) cells[5].setAttribute('data-label', 'Статус');
-                if(cells[6]) cells[6].setAttribute('data-label', 'Действия');
+                if(cells[2]) cells[2].setAttribute('data-label', 'Начало');
+                if(cells[3]) cells[3].setAttribute('data-label', 'Окончание');
+                if(cells[4]) cells[4].setAttribute('data-label', 'Уровень');
+                if(cells[5]) cells[5].setAttribute('data-label', 'Место');
+                if(cells[6]) cells[6].setAttribute('data-label', 'Статус');
+                if(cells[7]) cells[7].setAttribute('data-label', 'Действия');
             });
         }
     }
@@ -211,22 +177,57 @@
         document.getElementById('confForm').reset();
         document.getElementById('editId').value = '';
         document.getElementById('modalTitle').innerHTML = '<i class="bi bi-plus-circle"></i> Добавить конференцию';
-        if (id) { const item = conferencesList.find(c => c.id === id); if (item) { document.getElementById('editId').value = item.id; document.getElementById('title').value = item.title; document.getElementById('dateStart').value = item.dateStart; document.getElementById('dateEnd').value = item.dateEnd; document.getElementById('level').value = item.level; document.getElementById('status').value = item.status; document.getElementById('participants').value = item.participants; document.getElementById('location').value = item.location || ''; document.getElementById('organizer').value = item.organizer || ''; document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil-square"></i> Редактировать'; } }
+        if (id) {
+            const item = conferencesList.find(c => c.id === id);
+            if (item) {
+                document.getElementById('editId').value = item.id;
+                document.getElementById('title').value = item.title;
+                // Для datetime-local нужно значение в формате "YYYY-MM-DDThh:mm"
+                const startVal = item.dateStart ? new Date(item.dateStart).toISOString().slice(0,16) : '';
+                const endVal = item.dateEnd ? new Date(item.dateEnd).toISOString().slice(0,16) : '';
+                document.getElementById('dateStart').value = startVal;
+                document.getElementById('dateEnd').value = endVal;
+                document.getElementById('level').value = item.level;
+                document.getElementById('status').value = item.status;
+                document.getElementById('participants').value = item.participants;
+                document.getElementById('location').value = item.location || '';
+                document.getElementById('organizer').value = item.organizer || '';
+                document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil-square"></i> Редактировать';
+            }
+        }
         modalBs.show();
     }
 
     async function saveConference(e) {
         e.preventDefault();
-        const start = document.getElementById('dateStart').value, end = document.getElementById('dateEnd').value;
-        if (start > end) { alert('Дата окончания раньше начала'); return; }
+        const startStr = document.getElementById('dateStart').value;
+        const endStr = document.getElementById('dateEnd').value;
+        if (!startStr || !endStr) { alert('Заполните дату и время начала и окончания'); return; }
+        const startDate = new Date(startStr);
+        const endDate = new Date(endStr);
+        if (startDate > endDate) { alert('Дата и время окончания не могут быть раньше начала'); return; }
         const editId = document.getElementById('editId').value;
-        const item = { title: document.getElementById('title').value.trim(), dateStart: start, dateEnd: end, level: document.getElementById('level').value, status: document.getElementById('status').value, participants: parseInt(document.getElementById('participants').value) || 0, location: document.getElementById('location').value.trim(), organizer: document.getElementById('organizer').value.trim() };
-        let result; if (editId) { result = await supabaseClient.from('conferences').update(item).eq('id', parseInt(editId)); } else { result = await supabaseClient.from('conferences').insert([item]); }
-        if (result.error) { alert('Ошибка сохранения'); console.error(result.error); } else { modalBs.hide(); await loadConferences(); }
+        const item = {
+            title: document.getElementById('title').value.trim(),
+            dateStart: startDate.toISOString(),
+            dateEnd: endDate.toISOString(),
+            level: document.getElementById('level').value,
+            status: document.getElementById('status').value,
+            participants: parseInt(document.getElementById('participants').value) || 0,
+            location: document.getElementById('location').value.trim(),
+            organizer: document.getElementById('organizer').value.trim()
+        };
+        let result;
+        if (editId) {
+            result = await supabaseClient.from('conferences').update(item).eq('id', parseInt(editId));
+        } else {
+            result = await supabaseClient.from('conferences').insert([item]);
+        }
+        if (result.error) { alert('Ошибка сохранения: ' + result.error.message); console.error(result.error); }
+        else { modalBs.hide(); await loadConferences(); }
     }
 
     async function deleteConference(id) { if (confirm('Удалить конференцию?')) { const { error } = await supabaseClient.from('conferences').delete().eq('id', id); if (error) alert('Ошибка удаления'); else await loadConferences(); } }
-    function formatDate(d) { return new Date(d).toLocaleDateString('ru-RU'); }
     function escapeText(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'); }
 </script>
 </body>
