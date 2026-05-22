@@ -55,7 +55,7 @@
     <div class="main-card">
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
             <h1><i class="bi bi-calendar2-week"></i> Конференции</h1>
-            <button class="btn btn-primary no-print" onclick="openModal()"><i class="bi bi-plus-lg"></i> Новая конференция</button>
+            <button class="btn btn-primary no-print" id="addButton"><i class="bi bi-plus-lg"></i> Новая конференция</button>
         </div>
         <div class="row g-3 mb-4 align-items-end no-print">
             <div class="col-md-4">
@@ -101,7 +101,7 @@
                     <h5 class="modal-title" id="modalTitle"><i class="bi bi-calendar-plus"></i> Конференция</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form id="confForm" onsubmit="handleFormSubmit(event)">
+                <form id="confForm">
                     <div class="modal-body">
                         <input type="hidden" id="editId">
                         <div class="mb-3"><label class="form-label">Название</label><input type="text" id="title" class="form-control" required></div>
@@ -131,31 +131,33 @@
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let modal;
+        let conferencesData = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             modal = new bootstrap.Modal(document.getElementById('confModal'));
             loadData();
-            ['searchInput', 'levelFilter', 'statusFilter'].forEach(id =>
-                document.getElementById(id).addEventListener('input', () => render())
-            );
+            document.getElementById('searchInput').addEventListener('input', () => render());
+            document.getElementById('levelFilter').addEventListener('change', () => render());
+            document.getElementById('statusFilter').addEventListener('change', () => render());
+            document.getElementById('addButton').addEventListener('click', () => openModal());
+            document.getElementById('confForm').addEventListener('submit', handleFormSubmit);
         });
 
         async function loadData() {
             const { data, error } = await supabase.from('conferences').select('*');
             if (error) { console.error('Ошибка загрузки:', error); alert('Не удалось загрузить данные из базы'); return; }
-            window.conferencesData = data;
+            conferencesData = data;
             render();
         }
 
         function render() {
-            const data = window.conferencesData || [];
             const tbody = document.getElementById('tableBody');
             const empty = document.getElementById('emptyState');
             const s = document.getElementById('searchInput').value.toLowerCase();
             const lvl = document.getElementById('levelFilter').value;
             const stat = document.getElementById('statusFilter').value;
 
-            const filtered = data.filter(c =>
+            const filtered = conferencesData.filter(c =>
                 (c.title.toLowerCase().includes(s) || (c.organizer || '').toLowerCase().includes(s)) &&
                 (lvl === 'all' || c.level === lvl) && (stat === 'all' || c.status === stat)
             );
@@ -181,8 +183,20 @@
                 const tdLocation = document.createElement('td'); tdLocation.setAttribute('data-label', 'Место'); tdLocation.innerHTML = `<small>${esc(locationText)}</small>`;
                 const tdStatus = document.createElement('td'); tdStatus.setAttribute('data-label', 'Статус'); tdStatus.innerHTML = statuses[c.status] || '—';
                 const tdActions = document.createElement('td'); tdActions.setAttribute('data-label', 'Действия'); tdActions.className = 'no-print';
-                tdActions.innerHTML = `<button class="btn btn-sm btn-outline-primary" onclick="edit(${c.id})"><i class="bi bi-pencil"></i></button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="del(${c.id})"><i class="bi bi-trash3"></i></button>`;
+                
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn btn-sm btn-outline-primary';
+                editBtn.innerHTML = '<i class="bi bi-pencil"></i>';
+                editBtn.addEventListener('click', () => openModal(c.id));
+                
+                const delBtn = document.createElement('button');
+                delBtn.className = 'btn btn-sm btn-outline-danger';
+                delBtn.innerHTML = '<i class="bi bi-trash3"></i>';
+                delBtn.addEventListener('click', () => del(c.id));
+                
+                tdActions.appendChild(editBtn);
+                tdActions.appendChild(delBtn);
+                
                 row.append(tdNumber, tdTitle, tdDates, tdLevel, tdLocation, tdStatus, tdActions);
                 tbody.appendChild(row);
             });
@@ -193,8 +207,7 @@
             document.getElementById('editId').value = '';
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-calendar-plus"></i> Добавить конференцию';
             if (id) {
-                const data = window.conferencesData || [];
-                const c = data.find(x => x.id === id);
+                const c = conferencesData.find(x => x.id === id);
                 if (!c) return;
                 document.getElementById('editId').value = c.id;
                 document.getElementById('title').value = c.title;
@@ -237,7 +250,6 @@
             else { modal.hide(); await loadData(); }
         }
 
-        function edit(id) { openModal(id); }
         async function del(id) {
             if (confirm('Удалить конференцию?')) {
                 const { error } = await supabase.from('conferences').delete().eq('id', id);
