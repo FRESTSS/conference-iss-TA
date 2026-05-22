@@ -2,100 +2,122 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>Конференции</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { transition: all 0.2s ease; }
-        body { background: linear-gradient(135deg, #eef2f9 0%, #dfe6f0 100%); font-family: 'Segoe UI', Roboto, sans-serif; padding-bottom: 2rem; }
-        .main-card { background: rgba(255,255,255,0.92); backdrop-filter: blur(3px); border-radius: 2rem; box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25); padding: 1.8rem; margin-top: 1rem; }
-        h1 { font-weight: 800; background: linear-gradient(120deg, #0b2b5c, #1e4a76); background-clip: text; -webkit-background-clip: text; color: transparent; display: inline-flex; align-items: center; gap: 12px; }
-        .btn-primary { background: linear-gradient(95deg, #1e4663, #143450); border: none; border-radius: 60px; padding: 10px 20px; }
-        .btn-primary:hover { transform: translateY(-2px); }
-        .table { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 6px 14px rgba(0,0,0,0.05); }
-        .table thead th { background: #0f2c44; color: white; }
-        .badge-level { padding: 6px 14px; border-radius: 60px; }
-        .badge-inner { background: #2c7da0; color: white; }
-        .badge-reg { background: #2a9d8f; color: white; }
-        .badge-vseross { background: #e9c46a; color: #2c3e2f; }
-        .badge-int { background: #9b5de5; color: white; }
+        body { background: linear-gradient(135deg, #eef2f9 0%, #dfe6f0 100%); font-family: 'Segoe UI', Roboto, system-ui, -apple-system, 'Helvetica Neue', sans-serif; padding-bottom: 2rem; }
+        .main-card { background: rgba(255,255,255,0.92); backdrop-filter: blur(3px); border-radius: 2rem; box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25); padding: 1.8rem; margin-top: 1rem; position: relative; }
+        h1 { font-weight: 800; background: linear-gradient(120deg, #0b2b5c, #1e4a76); background-clip: text; -webkit-background-clip: text; color: transparent; display: inline-flex; align-items: center; gap: 12px; font-size: 1.8rem; }
+        .btn-primary { background: linear-gradient(95deg, #1e4663, #143450); border: none; border-radius: 60px; padding: 10px 20px; font-weight: 500; }
+        .btn-primary:active { transform: scale(0.97); }
+        /* Свайп-удаление */
+        .swipe-item {
+            position: relative;
+            margin-bottom: 16px;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .swipe-content {
+            background: white;
+            border-radius: 20px;
+            position: relative;
+            z-index: 2;
+            touch-action: pan-y pinch-zoom;
+        }
+        .delete-overlay {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 90px;
+            background: #dc3545;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            z-index: 1;
+            font-weight: bold;
+            gap: 6px;
+        }
         @media (max-width: 768px) {
-            .table, .table tbody, .table tr, .table td { display: block; }
+            .main-card { padding: 1rem; }
+            h1 { font-size: 1.4rem; }
+            .btn-primary { padding: 12px 16px; font-size: 1rem; width: 100%; }
+            .form-control, .form-select { font-size: 16px; padding: 12px 16px; }
+            .table { display: block; }
             .table thead { display: none; }
-            .table tr { margin-bottom: 20px; border-radius: 20px; background: white; padding: 12px; }
-            .table td { display: flex; justify-content: space-between; padding: 8px 0; }
-            .table td:before { content: attr(data-label); font-weight: bold; width: 40%; }
+            .table tbody { display: block; }
+            .d-flex.flex-wrap { flex-direction: column; gap: 12px; align-items: stretch; }
+            .row.g-3 { flex-direction: column; }
+        }
+        /* Десктоп: скрываем оверлей и показываем обычную таблицу */
+        @media (min-width: 769px) {
+            .swipe-item {
+                display: table-row;
+                background: transparent;
+                margin-bottom: 0;
+            }
+            .swipe-content {
+                display: table-cell;
+                padding: 0;
+                background: transparent;
+                box-shadow: none;
+                border-radius: 0;
+            }
+            .delete-overlay {
+                display: none;
+            }
+            .table tbody tr {
+                display: table-row;
+            }
+            .table td {
+                display: table-cell;
+            }
         }
     </style>
 </head>
-<body class="container py-4">
+<body class="container py-3 py-md-4">
 <div class="main-card">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
         <h1><i class="bi bi-calendar2-week"></i> Конференции</h1>
         <button class="btn btn-primary" id="addButton"><i class="bi bi-plus-lg"></i> Новая</button>
     </div>
     <div class="row g-3 mb-4">
         <div class="col-md-4"><input type="text" id="searchInput" class="form-control" placeholder="Поиск"></div>
-        <div class="col-md-3">
-            <select id="levelFilter" class="form-select">
-                <option value="all">Все уровни</option>
-                <option value="internal">Внутриколледжная</option>
-                <option value="regional">Региональная</option>
-                <option value="all-russia">Всероссийская</option>
-                <option value="international">Международная</option>
-            </select>
-        </div>
-        <div class="col-md-3">
-            <select id="statusFilter" class="form-select">
-                <option value="all">Все статусы</option>
-                <option value="planned">Запланирована</option>
-                <option value="active">Идёт</option>
-                <option value="completed">Завершена</option>
-            </select>
-        </div>
+        <div class="col-md-3"><select id="levelFilter" class="form-select"><option value="all">Все уровни</option><option value="internal">Внутриколледная</option><option value="regional">Региональная</option><option value="all-russia">Всероссийская</option><option value="international">Международная</option></select></div>
+        <div class="col-md-3"><select id="statusFilter" class="form-select"><option value="all">Все статусы</option><option value="planned">Запланирована</option><option value="active">Идёт</option><option value="completed">Завершена</option></select></div>
     </div>
     <div class="table-responsive">
-        <table class="table align-middle">
+        <table class="table align-middle" id="conferenceTable">
             <thead><tr><th>#</th><th>Название</th><th>Даты</th><th>Уровень</th><th>Место</th><th>Статус</th><th></th></tr></thead>
             <tbody id="tableBody"></tbody>
         </table>
     </div>
-    <div id="emptyState" class="alert text-center d-none">Нет конференций</div>
+    <div id="emptyState" class="alert text-center d-none mt-3"><i class="bi bi-inbox fs-3"></i><br>Нет конференций</div>
 </div>
 
 <div class="modal fade" id="confModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title" id="modalTitle">Конференция</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <form id="confForm">
-                <div class="modal-body">
-                    <input type="hidden" id="editId">
-                    <div class="mb-3"><label>Название</label><input type="text" id="title" class="form-control" required></div>
-                    <div class="row mb-3"><div class="col"><label>Дата начала</label><input type="date" id="dateStart" class="form-control" required></div><div class="col"><label>Дата окончания</label><input type="date" id="dateEnd" class="form-control" required></div></div>
-                    <div class="mb-3"><label>Уровень</label><select id="level" class="form-select"><option value="internal">Внутриколледжная</option><option value="regional">Региональная</option><option value="all-russia">Всероссийская</option><option value="international">Международная</option></select></div>
-                    <div class="mb-3"><label>Статус</label><select id="status" class="form-select"><option value="planned">Запланирована</option><option value="active">Идёт</option><option value="completed">Завершена</option></select></div>
-                    <div class="mb-3"><label>Участники</label><input type="number" id="participants" class="form-control" value="0"></div>
-                    <div class="mb-3"><label>Место</label><input type="text" id="location" class="form-control"></div>
-                    <div class="mb-3"><label>Организатор</label><input type="text" id="organizer" class="form-control"></div>
-                </div>
-                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button><button type="submit" class="btn btn-primary">Сохранить</button></div>
-            </form>
-        </div>
-    </div>
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="modalTitle">Конференция</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <form id="confForm"><div class="modal-body"><input type="hidden" id="editId"><div class="mb-3"><label class="form-label">Название</label><input type="text" id="title" class="form-control" required></div>
+    <div class="row mb-3"><div class="col"><label class="form-label">Дата начала</label><input type="date" id="dateStart" class="form-control" required></div><div class="col"><label class="form-label">Дата окончания</label><input type="date" id="dateEnd" class="form-control" required></div></div>
+    <div class="mb-3"><label class="form-label">Уровень</label><select id="level" class="form-select"><option value="internal">Внутриколледная</option><option value="regional">Региональная</option><option value="all-russia">Всероссийская</option><option value="international">Международная</option></select></div>
+    <div class="mb-3"><label class="form-label">Статус</label><select id="status" class="form-select"><option value="planned">Запланирована</option><option value="active">Идёт</option><option value="completed">Завершена</option></select></div>
+    <div class="mb-3"><label class="form-label">Участники</label><input type="number" id="participants" class="form-control" value="0"></div>
+    <div class="mb-3"><label class="form-label">Место</label><input type="text" id="location" class="form-control"></div>
+    <div class="mb-3"><label class="form-label">Организатор</label><input type="text" id="organizer" class="form-control"></div></div>
+    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button><button type="submit" class="btn btn-primary">Сохранить</button></div></form></div></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // ========== ВСТАВЬТЕ ВАШИ ДАННЫЕ СЮДА ==========
     const MY_SUPABASE_URL = 'https://hdsbczfbokmcjvdolvmo.supabase.co';
     const MY_SUPABASE_KEY = 'sb_publishable_zf775epbJGZFo2CDPDkJ1A_SYfnCJbm';
-    // ============================================
-
-    // Создаём клиент Supabase с уникальным именем переменной
     const supabaseClient = window.supabase.createClient(MY_SUPABASE_URL, MY_SUPABASE_KEY);
-    
     let modalBs = null;
     let conferencesList = [];
 
@@ -107,134 +129,105 @@
         document.getElementById('levelFilter').onchange = () => renderTable();
         document.getElementById('statusFilter').onchange = () => renderTable();
         loadConferences();
+
+        // Pull-to-refresh
+        let touchStartY = 0;
+        let pulling = false;
+        const container = document.querySelector('.main-card');
+        container.addEventListener('touchstart', (e) => { if (window.scrollY === 0) { touchStartY = e.touches[0].clientY; pulling = true; } }, { passive: true });
+        container.addEventListener('touchmove', (e) => { if (pulling && e.touches[0].clientY - touchStartY > 40) { e.preventDefault(); showRefreshHint(); } }, { passive: false });
+        container.addEventListener('touchend', () => { if (pulling && touchStartY && document.getElementById('refreshHint')?.style.transform === 'translateY(0)') { loadConferences(); setTimeout(() => hideRefreshHint(), 1000); } pulling = false; touchStartY = 0; });
     });
 
-    async function loadConferences() {
-        const { data, error } = await supabaseClient.from('conferences').select('*');
-        if (error) {
-            console.error(error);
-            alert('Ошибка загрузки: ' + error.message);
-            return;
-        }
-        conferencesList = data || [];
-        renderTable();
-    }
+    function showRefreshHint() { let h = document.getElementById('refreshHint'); if (!h) { h = document.createElement('div'); h.id = 'refreshHint'; h.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#1e4663;color:white;text-align:center;padding:12px;z-index:1000;transform:translateY(-100%);transition:0.3s'; h.innerHTML = 'Обновление...'; document.body.appendChild(h); } h.style.transform = 'translateY(0)'; }
+    function hideRefreshHint() { const h = document.getElementById('refreshHint'); if (h) h.style.transform = 'translateY(-100%)'; }
 
+    async function loadConferences() { const { data, error } = await supabaseClient.from('conferences').select('*'); if (error) { alert('Ошибка загрузки'); return; } conferencesList = data || []; renderTable(); }
+    
     function renderTable() {
-        const searchText = document.getElementById('searchInput').value.toLowerCase();
-        const levelVal = document.getElementById('levelFilter').value;
-        const statusVal = document.getElementById('statusFilter').value;
-        const filtered = conferencesList.filter(item => 
-            (item.title.toLowerCase().includes(searchText) || (item.organizer || '').toLowerCase().includes(searchText)) &&
-            (levelVal === 'all' || item.level === levelVal) &&
-            (statusVal === 'all' || item.status === statusVal)
-        );
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const lvl = document.getElementById('levelFilter').value;
+        const stat = document.getElementById('statusFilter').value;
+        const filtered = conferencesList.filter(c => (c.title.toLowerCase().includes(search) || (c.organizer || '').toLowerCase().includes(search)) && (lvl === 'all' || c.level === lvl) && (stat === 'all' || c.status === stat));
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
-        if (filtered.length === 0) {
-            document.getElementById('emptyState').classList.remove('d-none');
-        } else {
-            document.getElementById('emptyState').classList.add('d-none');
-        }
-        const levelNames = { internal: 'Внутриколледжная', regional: 'Региональная', 'all-russia': 'Всероссийская', international: 'Международная' };
+        if (filtered.length === 0) { document.getElementById('emptyState').classList.remove('d-none'); return; }
+        document.getElementById('emptyState').classList.add('d-none');
+        const levelNames = { internal: 'Внутриколледная', regional: 'Региональная', 'all-russia': 'Всероссийская', international: 'Международная' };
         const statusHtml = { planned: '<span class="badge bg-info">Запланирована</span>', active: '<span class="badge bg-warning">Идёт</span>', completed: '<span class="badge bg-success">Завершена</span>' };
         const badgeClass = { 'all-russia': 'badge-vseross', international: 'badge-int', regional: 'badge-reg' };
-        filtered.forEach((item, idx) => {
-            const row = tbody.insertRow();
-            row.insertCell(0).textContent = idx+1;
-            row.insertCell(1).innerHTML = `<b>${escapeText(item.title)}</b>${item.organizer ? `<br><small>${escapeText(item.organizer)}</small>` : ''}`;
-            row.insertCell(2).innerHTML = `<i class="bi bi-calendar3"></i> ${formatDate(item.dateStart)} — ${formatDate(item.dateEnd)}`;
-            row.insertCell(3).innerHTML = `<span class="badge-level ${badgeClass[item.level] || 'badge-inner'}">${levelNames[item.level]}</span>`;
-            row.insertCell(4).innerHTML = escapeText(item.location || '—');
-            row.insertCell(5).innerHTML = statusHtml[item.status] || '—';
-            const actions = row.insertCell(6);
-            const editBtn = document.createElement('button'); editBtn.className = 'btn btn-sm btn-outline-primary me-1'; editBtn.innerHTML = '<i class="bi bi-pencil"></i>'; editBtn.onclick = () => openForm(item.id);
-            const delBtn = document.createElement('button'); delBtn.className = 'btn btn-sm btn-outline-danger'; delBtn.innerHTML = '<i class="bi bi-trash"></i>'; delBtn.onclick = () => deleteConference(item.id);
-            actions.appendChild(editBtn); actions.appendChild(delBtn);
-        });
-        // Для адаптива
-        document.querySelectorAll('#tableBody tr').forEach(tr => {
-            const cells = tr.children;
-            if(cells[0]) cells[0].setAttribute('data-label', '#');
-            if(cells[1]) cells[1].setAttribute('data-label', 'Название');
-            if(cells[2]) cells[2].setAttribute('data-label', 'Даты');
-            if(cells[3]) cells[3].setAttribute('data-label', 'Уровень');
-            if(cells[4]) cells[4].setAttribute('data-label', 'Место');
-            if(cells[5]) cells[5].setAttribute('data-label', 'Статус');
-            if(cells[6]) cells[6].setAttribute('data-label', 'Действия');
-        });
+        
+        if (window.innerWidth <= 768) {
+            // Мобильная версия: карточки со свайпом
+            filtered.forEach(item => {
+                const swipeItem = document.createElement('div'); swipeItem.className = 'swipe-item';
+                const contentDiv = document.createElement('div'); contentDiv.className = 'swipe-content'; contentDiv.style.cssText = 'background:white;border-radius:20px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,0.05)';
+                contentDiv.innerHTML = `<div style="display:flex;justify-content:space-between"><strong>${escapeText(item.title)}</strong><span class="badge-level ${badgeClass[item.level] || 'badge-inner'}">${levelNames[item.level]}</span></div>
+                                        <div style="margin-top:8px"><i class="bi bi-calendar3"></i> ${formatDate(item.dateStart)} — ${formatDate(item.dateEnd)}</div>
+                                        ${item.organizer ? `<div style="margin-top:4px"><small><i class="bi bi-person-badge"></i> ${escapeText(item.organizer)}</small></div>` : ''}
+                                        <div style="margin-top:4px"><i class="bi bi-geo-alt"></i> ${escapeText(item.location || '—')}</div>
+                                        <div style="margin-top:8px">${statusHtml[item.status]}</div>
+                                        <div style="margin-top:12px"><button class="btn btn-sm btn-outline-primary edit-btn" data-id="${item.id}"><i class="bi bi-pencil"></i> Редактировать</button></div>`;
+                const deleteOverlay = document.createElement('div'); deleteOverlay.className = 'delete-overlay'; deleteOverlay.innerHTML = '<i class="bi bi-trash3"></i> Удалить';
+                swipeItem.appendChild(contentDiv); swipeItem.appendChild(deleteOverlay); tbody.appendChild(swipeItem);
+                let startX = 0, curX = 0, swiping = false;
+                contentDiv.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; swiping = true; contentDiv.style.transition = 'none'; }, { passive: true });
+                contentDiv.addEventListener('touchmove', (e) => { if (swiping) { const dx = e.touches[0].clientX - startX; if (dx < 0 && Math.abs(dx) > 10) { e.preventDefault(); curX = Math.max(-70, dx); contentDiv.style.transform = `translateX(${curX}px)`; } } }, { passive: false });
+                contentDiv.addEventListener('touchend', () => { swiping = false; contentDiv.style.transition = 'transform 0.2s'; if (curX < -50) { if (confirm(`Удалить конференцию "${item.title}"?`)) deleteConference(item.id); } contentDiv.style.transform = 'translateX(0)'; curX = 0; });
+                contentDiv.querySelector('.edit-btn').onclick = (e) => { e.stopPropagation(); openForm(item.id); };
+            });
+        } else {
+            // Десктоп: обычная таблица
+            filtered.forEach((item, idx) => {
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = idx+1;
+                row.insertCell(1).innerHTML = `<b>${escapeText(item.title)}</b>${item.organizer ? `<br><small>${escapeText(item.organizer)}</small>` : ''}`;
+                row.insertCell(2).innerHTML = `<i class="bi bi-calendar3"></i> ${formatDate(item.dateStart)} — ${formatDate(item.dateEnd)}`;
+                row.insertCell(3).innerHTML = `<span class="badge-level ${badgeClass[item.level] || 'badge-inner'}">${levelNames[item.level]}</span>`;
+                row.insertCell(4).innerHTML = escapeText(item.location || '—');
+                row.insertCell(5).innerHTML = statusHtml[item.status] || '—';
+                const actions = row.insertCell(6);
+                const editBtn = document.createElement('button'); editBtn.className = 'btn btn-sm btn-outline-primary me-1'; editBtn.innerHTML = '<i class="bi bi-pencil"></i>'; editBtn.onclick = () => openForm(item.id);
+                const delBtn = document.createElement('button'); delBtn.className = 'btn btn-sm btn-outline-danger'; delBtn.innerHTML = '<i class="bi bi-trash"></i>'; delBtn.onclick = () => deleteConference(item.id);
+                actions.appendChild(editBtn); actions.appendChild(delBtn);
+            });
+        }
+        // Добавить data-label для адаптива (в мобильном режиме они не нужны, но для единообразия)
+        if (window.innerWidth > 768) {
+            document.querySelectorAll('#tableBody tr').forEach(tr => {
+                const cells = tr.children;
+                if(cells[0]) cells[0].setAttribute('data-label', '#');
+                if(cells[1]) cells[1].setAttribute('data-label', 'Название');
+                if(cells[2]) cells[2].setAttribute('data-label', 'Даты');
+                if(cells[3]) cells[3].setAttribute('data-label', 'Уровень');
+                if(cells[4]) cells[4].setAttribute('data-label', 'Место');
+                if(cells[5]) cells[5].setAttribute('data-label', 'Статус');
+                if(cells[6]) cells[6].setAttribute('data-label', 'Действия');
+            });
+        }
     }
 
     function openForm(id = null) {
         document.getElementById('confForm').reset();
         document.getElementById('editId').value = '';
         document.getElementById('modalTitle').innerHTML = '<i class="bi bi-plus-circle"></i> Добавить конференцию';
-        if (id) {
-            const item = conferencesList.find(c => c.id === id);
-            if (item) {
-                document.getElementById('editId').value = item.id;
-                document.getElementById('title').value = item.title;
-                document.getElementById('dateStart').value = item.dateStart;
-                document.getElementById('dateEnd').value = item.dateEnd;
-                document.getElementById('level').value = item.level;
-                document.getElementById('status').value = item.status;
-                document.getElementById('participants').value = item.participants;
-                document.getElementById('location').value = item.location || '';
-                document.getElementById('organizer').value = item.organizer || '';
-                document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil-square"></i> Редактировать';
-            }
-        }
+        if (id) { const item = conferencesList.find(c => c.id === id); if (item) { document.getElementById('editId').value = item.id; document.getElementById('title').value = item.title; document.getElementById('dateStart').value = item.dateStart; document.getElementById('dateEnd').value = item.dateEnd; document.getElementById('level').value = item.level; document.getElementById('status').value = item.status; document.getElementById('participants').value = item.participants; document.getElementById('location').value = item.location || ''; document.getElementById('organizer').value = item.organizer || ''; document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil-square"></i> Редактировать'; } }
         modalBs.show();
     }
 
     async function saveConference(e) {
         e.preventDefault();
-        const startDate = document.getElementById('dateStart').value;
-        const endDate = document.getElementById('dateEnd').value;
-        if (startDate > endDate) {
-            alert('Дата окончания не может быть раньше даты начала');
-            return;
-        }
+        const start = document.getElementById('dateStart').value, end = document.getElementById('dateEnd').value;
+        if (start > end) { alert('Дата окончания раньше начала'); return; }
         const editId = document.getElementById('editId').value;
-        const conference = {
-            title: document.getElementById('title').value.trim(),
-            dateStart: startDate,
-            dateEnd: endDate,
-            level: document.getElementById('level').value,
-            status: document.getElementById('status').value,
-            participants: parseInt(document.getElementById('participants').value) || 0,
-            location: document.getElementById('location').value.trim(),
-            organizer: document.getElementById('organizer').value.trim()
-        };
-        let result;
-        if (editId) {
-            result = await supabaseClient.from('conferences').update(conference).eq('id', parseInt(editId));
-        } else {
-            result = await supabaseClient.from('conferences').insert([conference]);
-        }
-        if (result.error) {
-            alert('Ошибка сохранения: ' + result.error.message);
-            console.error(result.error);
-        } else {
-            modalBs.hide();
-            await loadConferences();
-        }
+        const item = { title: document.getElementById('title').value.trim(), dateStart: start, dateEnd: end, level: document.getElementById('level').value, status: document.getElementById('status').value, participants: parseInt(document.getElementById('participants').value) || 0, location: document.getElementById('location').value.trim(), organizer: document.getElementById('organizer').value.trim() };
+        let result; if (editId) { result = await supabaseClient.from('conferences').update(item).eq('id', parseInt(editId)); } else { result = await supabaseClient.from('conferences').insert([item]); }
+        if (result.error) { alert('Ошибка сохранения'); console.error(result.error); } else { modalBs.hide(); await loadConferences(); }
     }
 
-    async function deleteConference(id) {
-        if (confirm('Удалить конференцию?')) {
-            const { error } = await supabaseClient.from('conferences').delete().eq('id', id);
-            if (error) {
-                alert('Ошибка удаления: ' + error.message);
-                console.error(error);
-            } else {
-                await loadConferences();
-            }
-        }
-    }
-
-    function formatDate(dateStr) { return new Date(dateStr).toLocaleDateString('ru-RU'); }
-    function escapeText(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; return m;}); }
+    async function deleteConference(id) { if (confirm('Удалить конференцию?')) { const { error } = await supabaseClient.from('conferences').delete().eq('id', id); if (error) alert('Ошибка удаления'); else await loadConferences(); } }
+    function formatDate(d) { return new Date(d).toLocaleDateString('ru-RU'); }
+    function escapeText(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'); }
 </script>
 </body>
 </html>
