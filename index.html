@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>Конференции СКФУ</title>
+    <title>Конференции</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -36,6 +36,15 @@
             .table tbody tr { display: table-row; }
             .table td { display: table-cell; }
         }
+        /* Стили для модального окна подтверждения */
+        .modal-header.bg-danger {
+            background: linear-gradient(95deg, #dc3545, #b02a37);
+            color: white;
+            border-bottom: none;
+        }
+        .modal-header.bg-danger .btn-close {
+            filter: brightness(0) invert(1);
+        }
     </style>
 </head>
 <body class="container py-3 py-md-4">
@@ -46,25 +55,46 @@
     </div>
     <div class="row g-3 mb-4">
         <div class="col-md-4"><input type="text" id="searchInput" class="form-control" placeholder="Поиск по названию или организатору"></div>
-        <div class="col-md-3"><select id="levelFilter" class="form-select"><option value="all">Все уровни</option><option value="internal">Внутриколледжная</option><option value="regional">Региональная</option><option value="all-russia">Всероссийская</option><option value="international">Международная</option></select></div>
+        <div class="col-md-3"><select id="levelFilter" class="form-select"><option value="all">Все уровни</option><option value="internal">Внутриколледная</option><option value="regional">Региональная</option><option value="all-russia">Всероссийская</option><option value="international">Международная</option></select></div>
         <div class="col-md-3"><select id="statusFilter" class="form-select"><option value="all">Все статусы</option><option value="planned">Запланирована</option><option value="active">Идёт</option><option value="completed">Завершена</option></select></div>
     </div>
     <div class="table-responsive">
         <table class="table align-middle" id="conferenceTable">
-            <thead><tr><th></th><th>Название</th><th>Дата и время начала</th><th>Дата и время окончания</th><th>Уровень</th><th>Место</th><th>Статус</th><th></th></tr></thead>
+            <thead><tr><th>#</th><th>Название</th><th>Дата и время начала</th><th>Дата и время окончания</th><th>Уровень</th><th>Место</th><th>Статус</th><th></th></tr></thead>
             <tbody id="tableBody"></tbody>
         </table>
     </div>
     <div id="emptyState" class="alert text-center d-none mt-3"><i class="bi bi-inbox fs-3"></i><br>Нет конференций</div>
 </div>
 
+<!-- Модальное окно для удаления (красивое подтверждение) -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill"></i> Подтверждение удаления</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы действительно хотите удалить конференцию <strong id="deleteItemTitle"></strong>?</p>
+                <p class="text-muted small">Это действие необратимо.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Удалить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для добавления/редактирования -->
 <div class="modal fade" id="confModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="modalTitle">Конференция</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
     <form id="confForm"><div class="modal-body"><input type="hidden" id="editId">
         <div class="mb-3"><label class="form-label">Название</label><input type="text" id="title" class="form-control" required></div>
         <div class="mb-3"><label class="form-label">Дата и время начала</label><input type="datetime-local" id="dateStart" class="form-control" required></div>
         <div class="mb-3"><label class="form-label">Дата и время окончания</label><input type="datetime-local" id="dateEnd" class="form-control" required></div>
-        <div class="mb-3"><label class="form-label">Уровень</label><select id="level" class="form-select"><option value="internal">Внутриколледжная</option><option value="regional">Региональная</option><option value="all-russia">Всероссийская</option><option value="international">Международная</option></select></div>
+        <div class="mb-3"><label class="form-label">Уровень</label><select id="level" class="form-select"><option value="internal">Внутриколледная</option><option value="regional">Региональная</option><option value="all-russia">Всероссийская</option><option value="international">Международная</option></select></div>
         <div class="mb-3"><label class="form-label">Статус</label><select id="status" class="form-select"><option value="planned">Запланирована</option><option value="active">Идёт</option><option value="completed">Завершена</option></select></div>
         <div class="mb-3"><label class="form-label">Участники</label><input type="number" id="participants" class="form-control" value="0"></div>
         <div class="mb-3"><label class="form-label">Место проведения</label><input type="text" id="location" class="form-control"></div>
@@ -81,15 +111,30 @@
 
     const supabaseClient = window.supabase.createClient(MY_SUPABASE_URL, MY_SUPABASE_KEY);
     let modalBs = null;
+    let deleteModalBs = null;          // модалка подтверждения удаления
+    let pendingDeleteId = null;        // ID конференции, которую хотим удалить
+
     let conferencesList = [];
 
     document.addEventListener('DOMContentLoaded', () => {
         modalBs = new bootstrap.Modal(document.getElementById('confModal'));
+        deleteModalBs = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+        
         document.getElementById('addButton').onclick = () => openForm();
         document.getElementById('confForm').onsubmit = saveConference;
         document.getElementById('searchInput').oninput = () => renderTable();
         document.getElementById('levelFilter').onchange = () => renderTable();
         document.getElementById('statusFilter').onchange = () => renderTable();
+        
+        // Кнопка "Удалить" внутри модалки подтверждения
+        document.getElementById('confirmDeleteBtn').onclick = async () => {
+            if (pendingDeleteId !== null) {
+                await performDelete(pendingDeleteId);
+                pendingDeleteId = null;
+                deleteModalBs.hide();
+            }
+        };
+        
         loadConferences();
 
         // Pull-to-refresh (простая версия)
@@ -117,7 +162,7 @@
         tbody.innerHTML = '';
         if (filtered.length === 0) { document.getElementById('emptyState').classList.remove('d-none'); return; }
         document.getElementById('emptyState').classList.add('d-none');
-        const levelNames = { internal: 'Внутриколледжная', regional: 'Региональная', 'all-russia': 'Всероссийская', international: 'Международная' };
+        const levelNames = { internal: 'Внутриколледная', regional: 'Региональная', 'all-russia': 'Всероссийская', international: 'Международная' };
         const statusHtml = { planned: '<span class="badge bg-info">Запланирована</span>', active: '<span class="badge bg-warning">Идёт</span>', completed: '<span class="badge bg-success">Завершена</span>' };
         const badgeClass = { 'all-russia': 'badge-vseross', international: 'badge-int', regional: 'badge-reg' };
         
@@ -135,10 +180,12 @@
                                         <div style="margin-top:12px"><button class="btn btn-sm btn-outline-primary edit-btn" data-id="${item.id}"><i class="bi bi-pencil"></i> Редактировать</button></div>`;
                 const deleteOverlay = document.createElement('div'); deleteOverlay.className = 'delete-overlay'; deleteOverlay.innerHTML = '<i class="bi bi-trash3"></i> Удалить';
                 swipeItem.appendChild(contentDiv); swipeItem.appendChild(deleteOverlay); tbody.appendChild(swipeItem);
+                
+                // Обработка свайпа
                 let startX = 0, curX = 0, swiping = false;
                 contentDiv.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; swiping = true; contentDiv.style.transition = 'none'; }, { passive: true });
                 contentDiv.addEventListener('touchmove', (e) => { if (swiping) { const dx = e.touches[0].clientX - startX; if (dx < 0 && Math.abs(dx) > 10) { e.preventDefault(); curX = Math.max(-70, dx); contentDiv.style.transform = `translateX(${curX}px)`; } } }, { passive: false });
-                contentDiv.addEventListener('touchend', () => { swiping = false; contentDiv.style.transition = 'transform 0.2s'; if (curX < -50) { if (confirm(`Удалить конференцию "${item.title}"?`)) deleteConference(item.id); } contentDiv.style.transform = 'translateX(0)'; curX = 0; });
+                contentDiv.addEventListener('touchend', () => { swiping = false; contentDiv.style.transition = 'transform 0.2s'; if (curX < -50) { confirmDelete(item.id, item.title); } contentDiv.style.transform = 'translateX(0)'; curX = 0; });
                 contentDiv.querySelector('.edit-btn').onclick = (e) => { e.stopPropagation(); openForm(item.id); };
             });
         } else {
@@ -154,7 +201,7 @@
                 row.insertCell(6).innerHTML = statusHtml[item.status] || '—';
                 const actions = row.insertCell(7);
                 const editBtn = document.createElement('button'); editBtn.className = 'btn btn-sm btn-outline-primary me-1'; editBtn.innerHTML = '<i class="bi bi-pencil"></i>'; editBtn.onclick = () => openForm(item.id);
-                const delBtn = document.createElement('button'); delBtn.className = 'btn btn-sm btn-outline-danger'; delBtn.innerHTML = '<i class="bi bi-trash"></i>'; delBtn.onclick = () => deleteConference(item.id);
+                const delBtn = document.createElement('button'); delBtn.className = 'btn btn-sm btn-outline-danger'; delBtn.innerHTML = '<i class="bi bi-trash"></i>'; delBtn.onclick = () => confirmDelete(item.id, item.title);
                 actions.appendChild(editBtn); actions.appendChild(delBtn);
             });
         }
@@ -174,6 +221,23 @@
         }
     }
 
+    // Функция красивого подтверждения удаления
+    function confirmDelete(id, title) {
+        document.getElementById('deleteItemTitle').innerText = title;
+        pendingDeleteId = id;
+        deleteModalBs.show();
+    }
+
+    // Фактическое удаление
+    async function performDelete(id) {
+        const { error } = await supabaseClient.from('conferences').delete().eq('id', id);
+        if (error) {
+            alert('Ошибка удаления: ' + error.message);
+        } else {
+            await loadConferences();
+        }
+    }
+
     function openForm(id = null) {
         document.getElementById('confForm').reset();
         document.getElementById('editId').value = '';
@@ -183,7 +247,6 @@
             if (item) {
                 document.getElementById('editId').value = item.id;
                 document.getElementById('title').value = item.title;
-                // Для datetime-local нужно значение в формате "YYYY-MM-DDThh:mm"
                 const startVal = item.dateStart ? new Date(item.dateStart).toISOString().slice(0,16) : '';
                 const endVal = item.dateEnd ? new Date(item.dateEnd).toISOString().slice(0,16) : '';
                 document.getElementById('dateStart').value = startVal;
@@ -228,7 +291,6 @@
         else { modalBs.hide(); await loadConferences(); }
     }
 
-    async function deleteConference(id) { if (confirm('Удалить конференцию?')) { const { error } = await supabaseClient.from('conferences').delete().eq('id', id); if (error) alert('Ошибка удаления'); else await loadConferences(); } }
     function escapeText(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'); }
 </script>
 </body>
