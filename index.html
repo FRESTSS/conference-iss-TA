@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>Конференции</title>
+    <title>Конференции СКФУ
+    </title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -50,17 +51,17 @@
 <body class="container py-3 py-md-4">
 <div class="main-card">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-        <h1><i class="bi bi-calendar2-week"></i> Конференции</h1>
+        <h1><i class="bi bi-calendar2-week"></i> Конференции СКФУ</h1>
         <button class="btn btn-primary" id="addButton"><i class="bi bi-plus-lg"></i> Новая</button>
     </div>
     <div class="row g-3 mb-4">
         <div class="col-md-4"><input type="text" id="searchInput" class="form-control" placeholder="Поиск по названию или организатору"></div>
-        <div class="col-md-3"><select id="levelFilter" class="form-select"><option value="all">Все уровни</option><option value="internal">Внутриколледная</option><option value="regional">Региональная</option><option value="all-russia">Всероссийская</option><option value="international">Международная</option></select></div>
+        <div class="col-md-3"><select id="levelFilter" class="form-select"><option value="all">Все уровни</option><option value="internal">Внутриколледжная</option><option value="regional">Региональная</option><option value="all-russia">Всероссийская</option><option value="international">Международная</option></select></div>
         <div class="col-md-3"><select id="statusFilter" class="form-select"><option value="all">Все статусы</option><option value="planned">Запланирована</option><option value="active">Идёт</option><option value="completed">Завершена</option></select></div>
     </div>
     <div class="table-responsive">
         <table class="table align-middle" id="conferenceTable">
-            <thead><tr><th>#</th><th>Название</th><th>Дата и время начала</th><th>Дата и время окончания</th><th>Уровень</th><th>Место</th><th>Статус</th><th></th></tr></thead>
+            <thead><tr><th></th><th>Название</th><th>Дата и время начала</th><th>Дата и время окончания</th><th>Уровень</th><th>Место</th><th>Статус</th><th></th></tr></thead>
             <tbody id="tableBody"></tbody>
         </table>
     </div>
@@ -94,7 +95,7 @@
         <div class="mb-3"><label class="form-label">Название</label><input type="text" id="title" class="form-control" required></div>
         <div class="mb-3"><label class="form-label">Дата и время начала</label><input type="datetime-local" id="dateStart" class="form-control" required></div>
         <div class="mb-3"><label class="form-label">Дата и время окончания</label><input type="datetime-local" id="dateEnd" class="form-control" required></div>
-        <div class="mb-3"><label class="form-label">Уровень</label><select id="level" class="form-select"><option value="internal">Внутриколледная</option><option value="regional">Региональная</option><option value="all-russia">Всероссийская</option><option value="international">Международная</option></select></div>
+        <div class="mb-3"><label class="form-label">Уровень</label><select id="level" class="form-select"><option value="internal">Внутриколледжная</option><option value="regional">Региональная</option><option value="all-russia">Всероссийская</option><option value="international">Международная</option></select></div>
         <div class="mb-3"><label class="form-label">Статус</label><select id="status" class="form-select"><option value="planned">Запланирована</option><option value="active">Идёт</option><option value="completed">Завершена</option></select></div>
         <div class="mb-3"><label class="form-label">Участники</label><input type="number" id="participants" class="form-control" value="0"></div>
         <div class="mb-3"><label class="form-label">Место проведения</label><input type="text" id="location" class="form-control"></div>
@@ -162,7 +163,7 @@
         tbody.innerHTML = '';
         if (filtered.length === 0) { document.getElementById('emptyState').classList.remove('d-none'); return; }
         document.getElementById('emptyState').classList.add('d-none');
-        const levelNames = { internal: 'Внутриколледная', regional: 'Региональная', 'all-russia': 'Всероссийская', international: 'Международная' };
+        const levelNames = { internal: 'Внутриколледжная', regional: 'Региональная', 'all-russia': 'Всероссийская', international: 'Международная' };
         const statusHtml = { planned: '<span class="badge bg-info">Запланирована</span>', active: '<span class="badge bg-warning">Идёт</span>', completed: '<span class="badge bg-success">Завершена</span>' };
         const badgeClass = { 'all-russia': 'badge-vseross', international: 'badge-int', regional: 'badge-reg' };
         
